@@ -69,10 +69,28 @@ namespace WhiskeyPatch
                 whiskeyMag,
                 whiskeyRound
             }.ToArray();
+
+            LocaleTactics lt = new LocaleTactics();
+
+            lt.title = "Whiskey";
+            lt.gun_internal_name = "szikaka.whiskey";
+            lt.text = "A modded rifle, firing powerful .650\" caliber rounds.\nHowever, immense damage it can cause is counteracted by high recoil, low magazine capacity and mediocre ergonomics, making this weapon very situational, but still deadly";
+
+            Locale.active_locale_tactics.Add("szikaka.whiskey", lt);
         }
 
-        [HarmonyPatch(typeof(GunScript), "Awake")]
-        [HarmonyPrefix]
+        [HarmonyPatch(typeof(AmmoBoxScript), "Start")]
+        [HarmonyPostfix]
+        private static void PatchAmmoBoxStart(ref AmmoBoxScript __instance) {
+            if (!((int) __instance.round_prefab.GetComponent<ShellCasingScript>().cartridge_type == gun_model)) return;
+            
+            foreach (ShellCasingScript shell in __instance.transform.GetComponentsInChildren<ShellCasingScript>()) {
+                shell.transform.localEulerAngles = new Vector3(0, 90, 0);
+            }
+        }
+
+        //[HarmonyPatch(typeof(GunScript), "Awake")]
+        //[HarmonyPrefix]
         private static void PatchGunAwake(ref GunScript __instance) {
 
         }
@@ -81,6 +99,8 @@ namespace WhiskeyPatch
         [HarmonyPostfix]
         private static void PatchGunUpdate(ref GunScript __instance, ref int ___hammer_state, ref bool ___disconnector_needs_reset) {
             if ((int) __instance.gun_model != gun_model) return;
+
+            __instance.ApplyTransform("bolt_lock", __instance.slide.amount, __instance.transform.Find("slide/point_bolt_rotate"));
 
             if (__instance.IsSafetyOn() && __instance.trigger.amount != 0f)
 	        {
@@ -117,7 +137,7 @@ namespace WhiskeyPatch
 		        ___hammer_state = 0;
 	        }
 	        __instance.hammer.UpdateDisplay();
-
+            __instance.trigger.UpdateDisplay();
             __instance.safety.UpdateDisplay();
         }
     }
